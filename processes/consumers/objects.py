@@ -2,7 +2,7 @@
 from pendulum import DateTime, Date
 
 # Miyagi imports
-from miyagi import TypedMany
+from Miyagi import TypedMany
 
 # Installation-specific imports
 from ..users import User

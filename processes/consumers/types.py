@@ -1,4 +1,4 @@
-from miyagi import Type
+from Miyagi import Type
 
 
 class ContactTypes:
