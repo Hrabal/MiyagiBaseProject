@@ -1,0 +1,3 @@
+[submodule "Miyagi"]
+	path = Miyagi
+	url = https://github.com/Hrabal/Miyagi.git
