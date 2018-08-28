@@ -3,9 +3,7 @@ from pendulum import DateTime, Date
 
 # Miyagi imports
 from Miyagi import TypedMany
-
-# Installation-specific imports
-from ..users import User
+from Miyagi.processes.users import User
 
 # Process-specific imports
 from .types import ContactTypes, Brands, PrivacyFlags
