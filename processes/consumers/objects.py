@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # System level imports
 from pendulum import DateTime, Date
 
