@@ -1,12 +1,6 @@
-from vibora.blueprints import Blueprint
-from vibora.responses import JsonResponse
+# -*- coding: utf-8 -*-
+from Miyagi import App
 
-from Miyagi.config import Config
+from public import frontend
 
-frontend = Blueprint()
-
-
-@frontend.route("/test", methods=['GET'])
-async def home(config: Config):
-    print(config)
-    return JsonResponse({'1': 2})
+app = App(config='config.yml', custom_pages=[frontend, ])

@@ -1,7 +1,6 @@
-from Miyagi import App
-
-from app import frontend
+# -*- coding: utf-8 -*-
+from app import app
 
 if __name__ == "__main__":
-    app = App(config='config.yml', custom_pages=[frontend, ])
+    app.init_webapp()
     app.run()
