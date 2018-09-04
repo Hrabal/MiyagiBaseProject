@@ -35,11 +35,13 @@ class App:
     """
 
     def __init__(self, config: str=None, custom_pages: list=None, for_web: bool=False):
-        # Create the config object from the provided config file
-        self.config = Config(config)
 
         print()
-        print(Figlet(font='colossal').renderText('Miyagi'), f'App name: {self.config.project_name}')
+        print(Figlet(font='colossal').renderText('Miyagi'))
+
+        # Create the config object from the provided config file
+        self.config = Config(config)
+        print(f'App name: {self.config.project_name}')
 
         # Read the project processes
         self._read_processes()
@@ -74,7 +76,7 @@ class App:
 
     def _read_processes(self):
         """Traverses the "processes" folder and adds all the found valid processes to the Miyagi app"""
-        print('\nLoading installed processes...')
+        print('\nLoading default and installed processes...')
         self.processes = objdict()
         for module in chain(import_miyagi_modules(internal=True),
                             import_miyagi_modules('./processes')):
@@ -133,6 +135,11 @@ class MiyagiObject:
         return f'<{self.__class__.__name__}.{self.name}>'
 
 
+class MiyagiAction:
+    """Class that wraps actions classes"""
+    pass
+
+
 class MiyagiProcess:
     """Class that wraps a process module.
     Reads the module folder and extracts all the useful infos for later use.
@@ -145,24 +152,29 @@ class MiyagiProcess:
         self.is_admin = module.__package__.startswith('Miyagi')
 
         # Read all the object classes from this module
-        self._read_objects()
+        for module, cls in [
+            ('objects', MiyagiObject),
+            ]:
+            self._read_element(module, cls)
 
-    def _read_objects(self):
-        """Reads a module in search for valid Miyagi objects to add."""
-        self._objects = []
+    def _get_module_element(self, typ):
         # For every class in this module..
         for _, obj in inspect.getmembers(self.module, inspect.isclass):
             # ..if it's a class defined in the process and not imported from elsewhere..
-            # TODO: better validation
-            if getattr(obj, '__module__', None) == f'{self.module.__name__}.objects':
-                # ..f it's not type..
+            if getattr(obj, '__module__', None) == f'{self.module.__name__}.{typ}':
+                # ..if it's not type..
                 if obj != type:
-                    self._digest_object(obj)  # ..make a MiyagiObject instance.
+                    yield obj
 
-    def _digest_object(self, obj):
-        """Make a MiyagiObject instance from a class and add it to this process's objects."""
-        obj = MiyagiObject(obj)
-        self._objects.append(obj)
+    def _read_element(self, module, cls):
+        """Reads a module in search for valid Miyagi objects to add."""
+        elements = []
+        # For every class in this module..
+        for obj in self._get_module_element(module):
+            # TODO: better validation
+            obj = cls(obj)  # ..make a MiyagiXXX instance.
+            elements.append(obj)
+        setattr(self, f'_{module}', elements)
 
     @property
     def objects(self):

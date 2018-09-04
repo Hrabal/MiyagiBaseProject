@@ -7,17 +7,16 @@ from ...miyagi import App
 
 
 class JsonApi(MiyagiBlueprint):
-    base_path = '/jsonapi'
-
-    def craft(self):
-        for proc_name, process in self.app.processes.items():
+    @property
+    def endpoints(self):
+        for _, process in self.app.processes.items():
             for obj in process.objects:
                 if obj._json_api:
                     for handler_factory in (self.base_collection, ):
                         yield from handler_factory(obj)
 
     def base_collection(self, obj):
-        uri = f'{self.base_path}/{"/".join(part.name.lower() for part in obj.path)}'
+        uri = f'{self.app.config.JSON_API_PX}/{"/".join(part.name.lower() for part in obj.path)}'
 
         async def base_collection_blueprint(app: App):
             return JsonResponse({
