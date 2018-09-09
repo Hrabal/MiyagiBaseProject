@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import inspect
-from itertools import chain
+from itertools import chain, zip_longest
 from pyfiglet import Figlet
+from types import ModuleType
 
 from vibora.blueprints import Blueprint
 
@@ -55,10 +56,12 @@ class App:
 
     @property
     def objects(self):
+        """Iterator that yields all the App's objects from all the App's processes."""
         for _, proc in self.processes.items():
             yield from proc.objects
 
     def init_webapp(self, custom_pages: list=None):
+        """Creates the WebApp instance and adds the given custom Vibora Blueprints."""
         # init the webapp
         self.webapp = WebApp(self)
         if custom_pages:
@@ -81,17 +84,27 @@ class App:
         """Wrapper around Vibora's run method"""
         self.webapp.vibora.run(host=self.config.host, port=self.config.port, debug=self.config.debug)
 
-    def _read_processes(self):
-        """Traverses the "processes" folder and adds all the found valid processes to the Miyagi app"""
-        print('\nLoading default and installed processes...')
+    def _read_processes(self, folders: list=None):
+        """Traverses a folder looking for processes and adds all the valid processes to the Miyagi app.
+        If no folder is given, default folders are used:
+        - <Project folder>/processes
+        - <Miyagi folder>/processes'"""
+        if folders:
+            # Convert the dirs to import function args
+            import_kargs = map(dict(zip_longest(('base_dir', ), folders)))
+        else:
+            import_kargs = ({'internal': True}, {'base_dir': './processes'})
+
         self.processes = objdict()
-        for module in chain(import_miyagi_modules(internal=True),
-                            import_miyagi_modules('./processes')):
-            # Add the process as a Miyagi.MiyagiProcess instance to the app's processes
-            p_name = module.__name__.split('.')[-1]
-            process = MiyagiProcess(p_name, module)
-            self.processes[p_name] = process
-        print(f'Loaded Processes: {", ".join(map(str, self.processes.values()))}')
+        for kwargs in import_kargs:
+            print(f'\nLoading{" Miyagi internal " if "internal" in kwargs else " project "}processes...')
+            # Call the import function with either the internal flag or the process directory
+            for module in import_miyagi_modules(**kwargs):
+                # Add the process as a Miyagi.MiyagiProcess instance to the app's processes
+                p_name = module.__name__.split('.')[-1]
+                process = MiyagiProcess(p_name, module)
+                self.processes[p_name] = process
+        print(f'\nLoaded Processes: {", ".join(map(str, self.processes.values()))}')
         print(f'Loaded Objects: {", ".join(map(str,  (o for p in self.processes.values() for o in p.objects)))}')
 
 
@@ -100,7 +113,7 @@ class MiyagiObject:
     Reads the object and finds out all the Miyagi configurations in the provided class
     """
 
-    def __init__(self, obj, parent=None):
+    def __init__(self, obj: type, parent=None):
         self.name = obj.__name__
         self._gui = getattr(obj, '_gui', True)
         self._json_api = getattr(obj, '_json_api', False)
@@ -150,7 +163,7 @@ class MiyagiProcess:
     Reads the module folder and extracts all the useful infos for later use.
     """
 
-    def __init__(self, name, module):
+    def __init__(self, name: str, module: ModuleType):
         self.name = name
         self.module = module
         self.icon = getattr(module, 'icon', 'fa-code-branch')  # Default icon
@@ -162,7 +175,7 @@ class MiyagiProcess:
         ]:
             self._read_element(module, cls)
 
-    def _get_module_element(self, typ):
+    def _get_module_element(self, typ: str):
         # For every class in this module..
         for _, obj in inspect.getmembers(self.module, inspect.isclass):
             # ..if it's a class defined in the process and not imported from elsewhere..
@@ -171,7 +184,7 @@ class MiyagiProcess:
                 if obj != type:
                     yield obj
 
-    def _read_element(self, module, cls):
+    def _read_element(self, module: ModuleType, cls: type):
         """Reads a module in search for valid Miyagi objects to add."""
         elements = []
         # For every class in this module..
